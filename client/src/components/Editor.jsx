@@ -1,27 +1,32 @@
 import { useEffect, useRef } from 'react'
 import { EditorView, basicSetup } from 'codemirror'
 import { javascript } from '@codemirror/lang-javascript'
+import { yCollab } from 'y-codemirror.next'
+import * as Y from 'yjs'
+import { WebsocketProvider } from 'y-websocket'
 
-function Editor() {
+function Editor({ roomName = 'default-room' }) {
   const editorRef = useRef(null)
-  const viewRef = useRef(null)
 
   useEffect(() => {
-    if (!editorRef.current || viewRef.current) return
+    if (!editorRef.current) return
+
+    const ydoc = new Y.Doc()
+    const provider = new WebsocketProvider('ws://localhost:4000', roomName, ydoc)
+    const ytext = ydoc.getText('codemirror')
 
     const view = new EditorView({
-      doc: '// Start typing your code here\n',
-      extensions: [basicSetup, javascript()],
+      doc: ytext.toString(),
+      extensions: [basicSetup, javascript(), yCollab(ytext, provider.awareness)],
       parent: editorRef.current,
     })
 
-    viewRef.current = view
-
     return () => {
       view.destroy()
-      viewRef.current = null
+      provider.destroy()
+      ydoc.destroy()
     }
-  }, [])
+  }, [roomName])
 
   return <div ref={editorRef} className="editor-container" />
 }

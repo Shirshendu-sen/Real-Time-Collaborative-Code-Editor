@@ -1,5 +1,4 @@
 import Docker from "dockerode";
-import { createWriteStream } from "fs";
 import { mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import path from "path";

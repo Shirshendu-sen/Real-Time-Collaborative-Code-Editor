@@ -1,8 +1,12 @@
 import { useState } from 'react'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import Editor from './components/Editor'
+import Lobby from './components/Lobby'
 import './App.css'
 
 function App() {
+  const [session, setSession] = useState(null)
   const [code, setCode] = useState('')
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
@@ -36,14 +40,32 @@ function App() {
   return (
     <main className="app">
       <h1>Collaborative Code Editor</h1>
-      <Editor onCodeChange={setCode} />
-      <button className="run-button" onClick={runCode} disabled={isRunning || !code.trim()}>
-        {isRunning ? 'Running...' : 'Run'}
-      </button>
-      <section className="output-panel" aria-live="polite">
-        <h2>Output</h2>
-        <pre>{output || 'Run code to see output here.'}</pre>
-      </section>
+      {session === null ? (
+        <Lobby onJoinRoom={setSession} />
+      ) : (
+        <>
+          <Editor
+            roomName={session.roomName}
+            userName={session.userName}
+            onLeaveRoom={() => setSession(null)}
+            onCodeChange={setCode}
+          />
+          <button className="run-button" onClick={runCode} disabled={isRunning || !code.trim()}>
+            {isRunning ? 'Running...' : 'Run'}
+          </button>
+          <section className="output-panel" aria-live="polite">
+            <h2>Output</h2>
+            <pre>{output || 'Run code to see output here.'}</pre>
+          </section>
+        </>
+      )}
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar
+        newestOnTop
+        theme="dark"
+      />
     </main>
   )
 }

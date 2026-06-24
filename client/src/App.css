@@ -42,3 +42,149 @@
   border-radius: 6px;
   white-space: pre-wrap;
 }
+
+/* ---- Editor Layout (sidebar + editor area) ---- */
+.editor-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.editor-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #262b35;
+  border-radius: 8px;
+  padding: 16px;
+  color: #e6e6e6;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.editor-area {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Sidebar Sections ---- */
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar-heading {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9aa0ac;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-count {
+  font-weight: 400;
+  font-size: 12px;
+}
+
+/* ---- Connection Status ---- */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Room Controls ---- */
+.room-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-id-label {
+  font-size: 12px;
+  color: #9aa0ac;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.sidebar-btn {
+  background: #3a414d;
+  border: none;
+  color: #e6e6e6;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+  width: 100%;
+  text-align: center;
+}
+
+.sidebar-btn:hover {
+  background: #4a5260;
+}
+
+.copy-btn {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.leave-btn {
+  background: #5c2b2b;
+}
+
+.leave-btn:hover {
+  background: #7a3a3a;
+}
+
+/* ---- User List ---- */
+.user-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

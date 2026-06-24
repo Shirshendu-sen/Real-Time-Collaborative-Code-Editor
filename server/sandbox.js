@@ -2,18 +2,54 @@ import Docker from "dockerode";
 import { mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import path from "path";
-import { Writable } from "stream";
 
 const docker = new Docker();
 const TIMEOUT_MS = 5000;
+const CLEANUP_TIMEOUT_MS = 3000;
 
-function createCaptureStream(onChunk) {
-  return new Writable({
-    write(chunk, _encoding, callback) {
-      onChunk(chunk.toString());
-      callback();
-    },
+async function cleanupContainer(container) {
+  const removeContainer = container.remove({ force: true }).catch(() => {
+    // The container may already be gone after a normal exit or timeout kill.
   });
+
+  await Promise.race([
+    removeContainer,
+    new Promise((resolve) => {
+      setTimeout(resolve, CLEANUP_TIMEOUT_MS);
+    }),
+  ]);
+}
+
+function demuxDockerLogs(logBuffer) {
+  let stdout = "";
+  let stderr = "";
+  let offset = 0;
+
+  while (offset + 8 <= logBuffer.length) {
+    const streamType = logBuffer[offset];
+    const chunkLength = logBuffer.readUInt32BE(offset + 4);
+    const chunkStart = offset + 8;
+    const chunkEnd = chunkStart + chunkLength;
+
+    if (chunkEnd > logBuffer.length) {
+      break;
+    }
+
+    const chunk = logBuffer.subarray(chunkStart, chunkEnd).toString();
+    if (streamType === 2) {
+      stderr += chunk;
+    } else {
+      stdout += chunk;
+    }
+
+    offset = chunkEnd;
+  }
+
+  if (offset === 0 && logBuffer.length > 0) {
+    stdout = logBuffer.toString();
+  }
+
+  return { stdout, stderr };
 }
 
 export async function runUserCode(code) {
@@ -21,6 +57,7 @@ export async function runUserCode(code) {
   const codePath = path.join(tempDir, "main.js");
   let container;
   let timedOut = false;
+  let timeoutId;
 
   try {
     await writeFile(codePath, code, "utf8");
@@ -32,7 +69,7 @@ export async function runUserCode(code) {
       AttachStderr: true,
       Tty: false,
       HostConfig: {
-        AutoRemove: true,
+        AutoRemove: false,
         Memory: 100 * 1024 * 1024,
         CpuQuota: 50000,
         CpuPeriod: 100000,
@@ -42,44 +79,43 @@ export async function runUserCode(code) {
       },
     });
 
-    const stream = await container.attach({ stream: true, stdout: true, stderr: true });
-    let stdout = "";
-    let stderr = "";
-
-    docker.modem.demuxStream(
-      stream,
-      createCaptureStream((chunk) => {
-        stdout += chunk;
-      }),
-      createCaptureStream((chunk) => {
-        stderr += chunk;
-      }),
-    );
-
     await container.start();
 
+    let timeoutMessage = "";
+
     const timeout = new Promise((resolve) => {
-      setTimeout(async () => {
+      timeoutId = setTimeout(() => {
         timedOut = true;
-        stderr += "Execution timed out after 5 seconds.\n";
-        try {
-          await container.kill();
-        } catch (_error) {
-          // AutoRemove may delete the container before kill completes.
-        }
+        timeoutMessage = "Execution timed out after 5 seconds.\n";
+        container.kill().catch(() => {
+          // The container may already be stopped by the time the timeout fires.
+        });
         resolve({ StatusCode: 124 });
       }, TIMEOUT_MS);
     });
 
-    const result = await Promise.race([container.wait(), timeout]);
+    const waitForExit = container.wait().catch((error) => {
+      if (timedOut) {
+        return { StatusCode: 124 };
+      }
+
+      throw error;
+    });
+    const result = await Promise.race([waitForExit, timeout]);
+    clearTimeout(timeoutId);
+    const logs = await container.logs({ stdout: true, stderr: true });
+    const { stdout, stderr } = demuxDockerLogs(logs);
 
     return {
       stdout,
-      stderr,
+      stderr: stderr + timeoutMessage,
       exitCode: result.StatusCode,
       timedOut,
     };
   } finally {
+    if (container) {
+      await cleanupContainer(container);
+    }
     await rm(tempDir, { recursive: true, force: true });
   }
 }

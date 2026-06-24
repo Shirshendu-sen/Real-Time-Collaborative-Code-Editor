@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@y/websocket-server": "^0.1.1",
     "cors": "^2.8.6",
     "dockerode": "^5.0.0",
     "dotenv": "^17.4.2",
@@ -22,6 +24,7 @@
     "yjs": "^13.6.31"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "vitest": "^4.1.9"
   }
 }

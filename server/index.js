@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
-import { setupWSConnection } from "y-websocket/bin/utils.js";
+import { setupWSConnection } from "@y/websocket-server/utils";
 import { publisher, subscriber } from "./redis.js";
 import { runUserCode } from "./sandbox.js";
 

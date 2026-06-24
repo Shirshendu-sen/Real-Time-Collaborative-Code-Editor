@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import { setupWSConnection } from "@y/websocket-server/utils";
 import { publisher, subscriber } from "./redis.js";
+import { runUserCode } from "./sandbox.js";
 
 dotenv.config();
 
@@ -15,6 +16,22 @@ app.use(express.json());
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.post("/run", async (req, res) => {
+  const { code } = req.body;
+
+  if (typeof code !== "string" || code.trim().length === 0) {
+    return res.status(400).json({ error: "Code must be a non-empty string." });
+  }
+
+  try {
+    const result = await runUserCode(code);
+    res.json(result);
+  } catch (error) {
+    console.error("Sandbox execution error:", error);
+    res.status(500).json({ error: "Failed to execute code in sandbox." });
+  }
 });
 
 const httpServer = createServer(app);

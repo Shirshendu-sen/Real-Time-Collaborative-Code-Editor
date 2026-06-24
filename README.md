@@ -39,6 +39,7 @@
 - [Security Features](#security-features)
 - [Performance & Scalability](#performance--scalability)
 - [Roadmap](#roadmap)
+- [Future Scope](#future-scope)
 - [Learning Outcomes](#learning-outcomes)
 - [Contributing](#contributing)
 - [License](#license)
@@ -517,6 +518,12 @@ Y.js transmits compact binary updates instead of entire documents, reducing band
 - [ ] Persistent room history
 - [ ] Role-based permissions
 - [ ] Shareable room links
+
+---
+
+## Future Scope
+
+- Add AI-powered code review and debugging suggestions to help collaborators identify errors, improve code quality, and learn faster during shared sessions.
 
 ---
 

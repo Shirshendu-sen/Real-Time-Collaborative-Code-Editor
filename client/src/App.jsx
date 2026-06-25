@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Editor from './components/Editor'
+import LanguageSelector from './components/LanguageSelector'
 import Lobby from './components/Lobby'
 import './App.css'
 
@@ -173,6 +174,13 @@ const styles = {
     fontSize: '14px',
     lineHeight: 1.6,
   },
+  runControls: {
+    display: 'inline-flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: '12px',
+  },
   runButton: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -290,14 +298,17 @@ function App() {
                   </p>
                 </div>
 
-                <button
-                  className="run-button"
-                  style={styles.runButton}
-                  onClick={runCode}
-                  disabled={isRunning || !code.trim()}
-                >
-                  {isRunning ? 'Running...' : 'Run Code'}
-                </button>
+                <div style={styles.runControls}>
+                  <LanguageSelector />
+                  <button
+                    className="run-button"
+                    style={styles.runButton}
+                    onClick={runCode}
+                    disabled={isRunning || !code.trim()}
+                  >
+                    {isRunning ? 'Running...' : 'Run Code'}
+                  </button>
+                </div>
               </div>
 
               <section className="output-panel" style={styles.outputPanel}>

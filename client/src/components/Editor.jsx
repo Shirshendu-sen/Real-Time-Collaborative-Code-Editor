@@ -31,7 +31,7 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
   const providerRef = useRef(null)
 
   useEffect(() => {
-    if (!editorRef.current) return
+     if (!editorRef.current) return
 
     const ydoc = new Y.Doc()
     const provider = new WebsocketProvider('ws://localhost:4000', roomName, ydoc)
@@ -63,7 +63,8 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
           users.push({
             clientId,
             name: state.user.name || 'Anonymous',
-            color: state.user.color || '#999',
+            // Use theme token for fallback user avatar background color
+            color: state.user.color || 'var(--bg-card)',
           })
         }
       })
@@ -135,11 +136,12 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
     disconnected: 'Disconnected',
   }
 
-  const statusColor = {
-    connected: '#4caf50',
-    connecting: '#ff9800',
-    disconnected: '#f44336',
-  }
+// Use theme tokens for status colors
+const statusColor = {
+  connected: 'var(--success)',
+  connecting: 'var(--warning)',
+  disconnected: 'var(--danger)',
+}
 
   return (
     <div className="editor-layout">
@@ -151,7 +153,8 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
           <div className="connection-status">
             <span
               className="status-dot"
-              style={{ backgroundColor: statusColor[connectionStatus] || '#999' }}
+              // Use theme token for fallback status dot color
+              style={{ backgroundColor: statusColor[connectionStatus] || 'var(--text-secondary)' }}
             />
             <span>{statusLabel[connectionStatus] || 'Unknown'}</span>
           </div>

@@ -1,0 +1,44 @@
+:root {
+  /* Surface */
+  --bg-base: #0d0e12;
+  --bg-elevated: #15171c;
+  --bg-card: #1a1d24;
+  --border-subtle: #262932;
+
+  /* Text */
+  --text-primary: #e6e8ec;
+  --text-secondary: #9aa0ac;
+  --text-muted: #5c6270;
+
+  /* Accent (single accent, used sparingly) */
+  --accent: #6e6bff;
+  --accent-hover: #8482ff;
+  --accent-muted: rgba(110, 107, 255, 0.12);
+
+  /* Status */
+  --success: #3ecf8e;
+  --warning: #f5b86a;
+  --danger: #f56565;
+
+  /* Type */
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}

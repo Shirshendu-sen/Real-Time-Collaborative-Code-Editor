@@ -2,10 +2,11 @@
   padding: 20px;
 }
 
+/* Editor container styling – use theme token for border */
 .editor-container {
   height: 500px;
   overflow: auto;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-subtle);
   text-align: left;
 }
 
@@ -46,20 +47,21 @@
 /* ---- Editor Layout (sidebar + editor area) ---- */
 .editor-layout {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4); /* 16px */
   align-items: flex-start;
 }
 
 .editor-sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: #262b35;
-  border-radius: 8px;
-  padding: 16px;
-  color: #e6e6e6;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-3); /* 12px */
+  box-shadow: var(--shadow-sm);
 }
 
 .editor-area {
@@ -71,37 +73,37 @@
 .sidebar-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2); /* 8px */
 }
 
 .sidebar-heading {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--space-3); /* 12px */
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #9aa0ac;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .user-count {
   font-weight: 400;
-  font-size: 12px;
+  font-size: var(--space-2); /* 8px */
 }
 
 /* ---- Connection Status ---- */
 .connection-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: var(--space-2);
+  font-size: var(--space-3); /* 12px */
 }
 
 .status-dot {
-  width: 10px;
-  height: 10px;
+  width: var(--space-2);
+  height: var(--space-2);
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -111,12 +113,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .room-id-label {
-  font-size: 12px;
-  color: #9aa0ac;
+  font-size: var(--space-2);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -124,20 +126,20 @@
 }
 
 .sidebar-btn {
-  background: #3a414d;
+  background: var(--bg-elevated);
   border: none;
-  color: #e6e6e6;
-  padding: 6px 10px;
-  border-radius: 4px;
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 12px;
-  transition: background 0.2s;
+  font-size: var(--space-2);
+  transition: background var(--ease) 0.2s;
   width: 100%;
   text-align: center;
 }
 
 .sidebar-btn:hover {
-  background: #4a5260;
+  background: var(--bg-card);
 }
 
 .copy-btn {
@@ -146,11 +148,11 @@
 }
 
 .leave-btn {
-  background: #5c2b2b;
+  background: var(--danger);
 }
 
 .leave-btn:hover {
-  background: #7a3a3a;
+  background: var(--danger);
 }
 
 /* ---- User List ---- */
@@ -160,13 +162,13 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .user-avatar {
@@ -177,13 +179,13 @@
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 13px;
+  font-size: var(--space-3);
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: var(--space-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -6,7 +6,9 @@ import { runUserCode as runJavaScriptCode } from "../sandbox.js";
 import { DEFAULT_LANGUAGE, getLanguageConfig, normalizeLanguage } from "./languages.js";
 
 const docker = new Docker();
-const TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 5000;
+const DEFAULT_MEMORY_MB = 100;
+const DEFAULT_PIDS_LIMIT = 64;
 const CLEANUP_TIMEOUT_MS = 3000;
 
 export class UnsupportedLanguageError extends Error {
@@ -76,6 +78,9 @@ function buildShellCommand(config) {
 async function runInContainer(code, config) {
   const tempDir = await mkdtemp(path.join(tmpdir(), "code-sandbox-"));
   const codePath = path.join(tempDir, config.fileName);
+  const timeoutMs = config.timeoutMs || DEFAULT_TIMEOUT_MS;
+  const memoryBytes = (config.memoryMb || DEFAULT_MEMORY_MB) * 1024 * 1024;
+  const pidsLimit = config.pidsLimit || DEFAULT_PIDS_LIMIT;
   let container;
   let timedOut = false;
   let timeoutId;
@@ -83,37 +88,42 @@ async function runInContainer(code, config) {
   try {
     await writeFile(codePath, code, "utf8");
 
-    container = await docker.createContainer({
+    const createOptions = {
       Image: config.image,
-      Cmd: ["sh", "-lc", buildShellCommand(config)],
+      Cmd: ["sh", "-c", buildShellCommand(config)],
       AttachStdout: true,
       AttachStderr: true,
       Tty: false,
       WorkingDir: "/sandbox",
       HostConfig: {
         AutoRemove: false,
-        Memory: 100 * 1024 * 1024,
-        CpuQuota: 50000,
+        Memory: memoryBytes,
+        CpuQuota: 100000,
         CpuPeriod: 100000,
         NetworkMode: "none",
-        PidsLimit: 64,
+        PidsLimit: pidsLimit,
         Binds: [`${tempDir}:/sandbox:ro`],
       },
-    });
+    };
+
+    if (config.env) {
+      createOptions.Env = config.env;
+    }
+
+    container = await docker.createContainer(createOptions);
 
     await container.start();
 
     let timeoutMessage = "";
+    const timeoutSeconds = Math.round(timeoutMs / 1000);
 
     const timeout = new Promise((resolve) => {
       timeoutId = setTimeout(() => {
         timedOut = true;
-        timeoutMessage = "Execution timed out after 5 seconds.\n";
-        container.kill().catch(() => {
-          // The container may already be stopped by the time the timeout fires.
-        });
+        timeoutMessage = `Execution timed out after ${timeoutSeconds} seconds.\n`;
+        container.kill().catch(() => {});
         resolve({ StatusCode: 124 });
-      }, TIMEOUT_MS);
+      }, timeoutMs);
     });
 
     const waitForExit = container.wait().catch((error) => {

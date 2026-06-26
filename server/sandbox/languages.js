@@ -4,7 +4,7 @@ export const LANGUAGES = {
   javascript: {
     id: "javascript",
     label: "JavaScript",
-    image: "code-sandbox-js",
+    image: "code-sandbox",
     fileName: "main.js",
     runCommand: ["node", "main.js"],
     compileCommand: null,
@@ -25,6 +25,9 @@ export const LANGUAGES = {
     fileName: "Main.java",
     runCommand: ["java", "Main.java"],
     compileCommand: null,
+    timeoutMs: 20000,
+    memoryMb: 256,
+    pidsLimit: 128,
   },
   "c++": {
     id: "c++",
@@ -32,15 +35,21 @@ export const LANGUAGES = {
     image: "code-sandbox-cpp",
     fileName: "main.cpp",
     runCommand: ["/tmp/a.out"],
-    compileCommand: ["g++", "main.cpp", "-o", "/tmp/a.out"],
+    compileCommand: ["g++", "-O0", "main.cpp", "-o", "/tmp/a.out"],
+    timeoutMs: 30000,
+    memoryMb: 256,
   },
   go: {
     id: "go",
     label: "Go",
     image: "code-sandbox-go",
     fileName: "main.go",
-    runCommand: ["go", "run", "main.go"],
-    compileCommand: null,
+    runCommand: ["/tmp/main"],
+    compileCommand: ["go", "build", "-o", "/tmp/main", "main.go"],
+    timeoutMs: 30000,
+    memoryMb: 512,
+    pidsLimit: 128,
+    env: ["GOCACHE=/tmp/go-cache", "GOPATH=/tmp/gopath"],
   },
   rust: {
     id: "rust",
@@ -49,6 +58,8 @@ export const LANGUAGES = {
     fileName: "main.rs",
     runCommand: ["/tmp/main"],
     compileCommand: ["rustc", "main.rs", "-o", "/tmp/main"],
+    timeoutMs: 60000,
+    memoryMb: 512,
   },
 };
 

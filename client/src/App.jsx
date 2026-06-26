@@ -1,218 +1,23 @@
-import { useState } from 'react'
-import { ToastContainer } from 'react-toastify'
+import { useState, useCallback, useEffect } from 'react'
+import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Editor from './components/Editor'
 import LanguageSelector from './components/LanguageSelector'
+import AIPanel from './components/ai/AIPanel'
+import { callAIAction, extractResponseText, fetchAIStatus } from './lib/aiClient'
 import Lobby from './components/Lobby'
 import './App.css'
 
-const styles = {
-  app: {
-    minHeight: '100vh',
-    padding: '24px',
-    boxSizing: 'border-box',
-    background:
-      'radial-gradient(circle at top, rgba(88, 101, 242, 0.18) 0%, rgba(15, 23, 42, 0.96) 38%, #020617 100%)',
-    color: '#e2e8f0',
-    fontFamily:
-      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  },
-  shell: {
-    width: 'min(100%, 1280px)',
-    margin: '0 auto',
-  },
-  introSection: {
-    display: 'grid',
-    gap: '18px',
-    justifyItems: 'center',
-    padding: '24px 0',
-  },
-  introBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '8px 14px',
-    borderRadius: '999px',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    background: 'rgba(15, 23, 42, 0.58)',
-    color: '#93c5fd',
-    fontSize: '12px',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    boxShadow: '0 10px 30px rgba(2, 6, 23, 0.24)',
-  },
-  introTitle: {
-    margin: 0,
-    maxWidth: '760px',
-    color: '#f8fafc',
-    fontSize: 'clamp(2.1rem, 5vw, 4rem)',
-    lineHeight: 1.05,
-    letterSpacing: '-0.05em',
-    textAlign: 'center',
-  },
-  introText: {
-    margin: 0,
-    maxWidth: '680px',
-    color: '#94a3b8',
-    fontSize: '16px',
-    lineHeight: 1.65,
-    textAlign: 'center',
-  },
-  workspace: {
-    display: 'grid',
-    gap: '18px',
-  },
-  workspaceHeader: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '18px',
-    padding: '22px 24px',
-    border: '1px solid rgba(148, 163, 184, 0.14)',
-    borderRadius: '22px',
-    background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.68))',
-    boxShadow: '0 18px 50px rgba(2, 6, 23, 0.28)',
-    backdropFilter: 'blur(14px)',
-  },
-  workspaceHeadingGroup: {
-    display: 'grid',
-    gap: '8px',
-  },
-  workspaceLabel: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: '#7dd3fc',
-    fontSize: '12px',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-  },
-  workspaceTitle: {
-    margin: 0,
-    color: '#f8fafc',
-    fontSize: 'clamp(1.8rem, 3vw, 2.6rem)',
-    lineHeight: 1.1,
-    letterSpacing: '-0.04em',
-  },
-  workspaceText: {
-    margin: 0,
-    maxWidth: '720px',
-    color: '#94a3b8',
-    fontSize: '15px',
-    lineHeight: 1.6,
-  },
-  workspaceMeta: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '12px',
-    justifyContent: 'flex-end',
-  },
-  metaPill: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '10px 14px',
-    borderRadius: '14px',
-    background: 'rgba(30, 41, 59, 0.76)',
-    border: '1px solid rgba(148, 163, 184, 0.12)',
-    color: '#cbd5e1',
-    fontSize: '13px',
-    fontWeight: 600,
-  },
-  contentGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr)',
-    gap: '18px',
-  },
-  editorCard: {
-    padding: '16px',
-    borderRadius: '24px',
-    border: '1px solid rgba(148, 163, 184, 0.12)',
-    background: 'rgba(15, 23, 42, 0.74)',
-    boxShadow: '0 18px 60px rgba(2, 6, 23, 0.32)',
-    overflow: 'hidden',
-  },
-  utilityPanel: {
-    padding: '20px',
-    borderRadius: '24px',
-    border: '1px solid rgba(148, 163, 184, 0.12)',
-    background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.72))',
-    boxShadow: '0 18px 50px rgba(2, 6, 23, 0.28)',
-    display: 'grid',
-    gap: '16px',
-  },
-  panelHeader: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  panelTitleGroup: {
-    display: 'grid',
-    gap: '6px',
-  },
-  panelEyebrow: {
-    color: '#7dd3fc',
-    fontSize: '12px',
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-  },
-  panelTitle: {
-    margin: 0,
-    color: '#f8fafc',
-    fontSize: '20px',
-    letterSpacing: '-0.03em',
-  },
-  panelText: {
-    margin: 0,
-    color: '#94a3b8',
-    fontSize: '14px',
-    lineHeight: 1.6,
-  },
-  runControls: {
-    display: 'inline-flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: '12px',
-  },
-  runButton: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '10px',
-    padding: '12px 18px',
-    border: 'none',
-    borderRadius: '14px',
-    background: 'linear-gradient(135deg, #38bdf8, #22c55e)',
-    color: '#020617',
-    fontSize: '15px',
-    fontWeight: 800,
-    cursor: 'pointer',
-    boxShadow: '0 16px 32px rgba(34, 197, 94, 0.18)',
-  },
-  outputPanel: {
-    margin: 0,
-  },
-  outputWindow: {
-    minHeight: '180px',
-    margin: 0,
-    padding: '18px',
-    overflow: 'auto',
-    color: '#e2e8f0',
-    background: 'linear-gradient(180deg, rgba(2, 6, 23, 0.96), rgba(15, 23, 42, 0.98))',
-    border: '1px solid rgba(148, 163, 184, 0.12)',
-    borderRadius: '18px',
-    whiteSpace: 'pre-wrap',
-    fontSize: '14px',
-    lineHeight: 1.65,
-    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.04)',
-  },
+const ACTION_LABELS = {
+  explain: 'Explanation',
+  fix: 'Improved Code',
+  optimize: 'Optimization',
+  comment: 'Commented Code',
+  convert: 'Language Conversion',
+  review: 'Code Review',
+  debug: 'Debug Analysis',
+  explainError: 'Error Explanation',
+  generate: 'Generated Code',
 }
 
 function App() {
@@ -220,10 +25,25 @@ function App() {
   const [code, setCode] = useState('')
   const [output, setOutput] = useState('')
   const [isRunning, setIsRunning] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState('JavaScript')
+  const [outputOpen, setOutputOpen] = useState(true)
+
+  const [aiEnabled, setAiEnabled] = useState(false)
+  const [aiPanelOpen, setAiPanelOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const [aiContent, setAiContent] = useState('')
+  const [aiActionLabel, setAiActionLabel] = useState('')
+  const [lastAIRequest, setLastAIRequest] = useState(null)
+
+  useEffect(() => {
+    fetchAIStatus().then(setAiEnabled)
+  }, [])
 
   const runCode = async () => {
     setIsRunning(true)
     setOutput('Running...')
+    setOutputOpen(true)
 
     try {
       const response = await fetch('http://localhost:4000/run', {
@@ -247,86 +67,173 @@ function App() {
     }
   }
 
+  const handleAIAction = useCallback(async ({ action, code: selectedCode, language, toLanguage }) => {
+    if (!aiEnabled) return
+    setAiPanelOpen(true)
+    setAiLoading(true)
+    setAiError('')
+    setAiContent('')
+    setAiActionLabel(ACTION_LABELS[action] || action)
+    setLastAIRequest({ action, code: selectedCode, language, toLanguage })
+
+    try {
+      const data = await callAIAction(action, {
+        code: selectedCode,
+        language,
+        fromLanguage: language,
+        toLanguage,
+      })
+      setAiContent(extractResponseText(action, data))
+    } catch (err) {
+      setAiError(err.message || 'AI request failed.')
+      toast.error('AI request failed.')
+    } finally {
+      setAiLoading(false)
+    }
+  }, [aiEnabled])
+
+  const handleAIRetry = useCallback(() => {
+    if (lastAIRequest) {
+      handleAIAction(lastAIRequest)
+    }
+  }, [lastAIRequest, handleAIAction])
+
+  const handleCopyRoomId = useCallback(() => {
+    if (!session) return
+    navigator.clipboard.writeText(session.roomName)
+      .then(() => toast.success('Room ID copied'))
+      .catch(() => {})
+  }, [session])
+
+  if (!session) {
+    return (
+      <>
+        <Lobby onJoinRoom={setSession} />
+        <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar newestOnTop theme="dark" />
+      </>
+    )
+  }
+
+  const truncatedRoom = session.roomName.length > 24
+    ? `${session.roomName.slice(0, 10)}...${session.roomName.slice(-4)}`
+    : session.roomName
+
   return (
-    <main className="app" style={styles.app}>
-      <div style={styles.shell}>
-      {session === null ? (
-        <section style={styles.introSection}>
-          <span style={styles.introBadge}>⚡ Realtime Pair Programming</span>
-          <h1 style={styles.introTitle}>Collaborative Code Editor</h1>
-          <p style={styles.introText}>
-            Create a room, invite teammates, and jump into a focused coding workspace with
-            instant sharing and quick feedback.
-          </p>
-          <Lobby onJoinRoom={setSession} />
-        </section>
-      ) : (
-        <section style={styles.workspace}>
-          <header style={styles.workspaceHeader}>
-            <div style={styles.workspaceHeadingGroup}>
-              <span style={styles.workspaceLabel}>🧠 Live Coding Session</span>
-              <h1 style={styles.workspaceTitle}>Collaborative Code Editor</h1>
-              <p style={styles.workspaceText}>
-                Write together in real time, run code when you are ready, and keep the
-                latest output visible in a dedicated console panel.
-              </p>
-            </div>
-
-            <div style={styles.workspaceMeta}>
-              <span style={styles.metaPill}>👤 {session.userName}</span>
-              <span style={styles.metaPill}>🏷️ {session.roomName}</span>
-            </div>
-          </header>
-
-          <div style={styles.contentGrid}>
-            <div style={styles.editorCard}>
-              <Editor
-                roomName={session.roomName}
-                userName={session.userName}
-                onLeaveRoom={() => setSession(null)}
-                onCodeChange={setCode}
-              />
-            </div>
-
-            <section style={styles.utilityPanel} aria-live="polite">
-              <div style={styles.panelHeader}>
-                <div style={styles.panelTitleGroup}>
-                  <span style={styles.panelEyebrow}>▶ Execution</span>
-                  <h2 style={styles.panelTitle}>Output Console</h2>
-                  <p style={styles.panelText}>
-                    Run the current code and inspect the latest output stream here.
-                  </p>
-                </div>
-
-                <div style={styles.runControls}>
-                  <LanguageSelector />
-                  <button
-                    className="run-button"
-                    style={styles.runButton}
-                    onClick={runCode}
-                    disabled={isRunning || !code.trim()}
-                  >
-                    {isRunning ? 'Running...' : 'Run Code'}
-                  </button>
-                </div>
-              </div>
-
-              <section className="output-panel" style={styles.outputPanel}>
-                <pre style={styles.outputWindow}>{output || 'Run code to see output here.'}</pre>
-              </section>
-            </section>
+    <div className="workspace">
+      {/* ─── Toolbar ─── */}
+      <header className="toolbar" role="toolbar" aria-label="Workspace toolbar">
+        <div className="toolbar-start">
+          <div className="toolbar-brand">
+            <span className="brand-icon" aria-hidden="true">S</span>
+            <span className="brand-name">SyncCode</span>
           </div>
-        </section>
-      )}
-      <ToastContainer
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar
-        newestOnTop
-        theme="dark"
-      />
+          <div className="toolbar-divider" />
+          <div className="toolbar-room">
+            <span className="toolbar-room-name" title={session.roomName}>{truncatedRoom}</span>
+            <button className="btn btn-ghost btn-xs" onClick={handleCopyRoomId} title="Copy Room ID">
+              Copy ID
+            </button>
+          </div>
+        </div>
+        <div className="toolbar-end">
+          <LanguageSelector value={selectedLanguage} onChange={setSelectedLanguage} />
+          <button
+            className={`btn btn-primary btn-run${isRunning ? ' btn-running' : ''}`}
+            onClick={runCode}
+            disabled={isRunning || !code.trim()}
+            aria-label={isRunning ? 'Code is running' : 'Run code'}
+          >
+            <span className="btn-run-icon" aria-hidden="true">{isRunning ? '◌' : '▶'}</span>
+            {isRunning ? 'Running' : 'Run'}
+          </button>
+          {aiEnabled && (
+            <button
+              className={`btn btn-ghost${aiPanelOpen ? ' btn-active' : ''}`}
+              onClick={() => setAiPanelOpen(v => !v)}
+              aria-label="Toggle AI Assistant"
+              aria-pressed={aiPanelOpen}
+            >
+              AI
+            </button>
+          )}
+          <div className="toolbar-divider" />
+          <div className="toolbar-user">
+            <span className="toolbar-user-avatar" aria-hidden="true">
+              {session.userName.charAt(0).toUpperCase()}
+            </span>
+            <span className="toolbar-user-name">{session.userName}</span>
+          </div>
+          <button className="btn btn-ghost btn-danger-text" onClick={() => setSession(null)}>
+            Leave
+          </button>
+        </div>
+      </header>
+
+      {/* ─── Editor Body ─── */}
+      <div className="workspace-body">
+        <Editor
+          roomName={session.roomName}
+          userName={session.userName}
+          onCodeChange={setCode}
+          onAIAction={handleAIAction}
+          currentLanguage={selectedLanguage}
+          aiEnabled={aiEnabled}
+        />
       </div>
-    </main>
+
+      {/* ─── Output Pane ─── */}
+      <section className="output-pane" aria-label="Code output">
+        <header className="output-header">
+          <div className="output-header-start">
+            <span className="output-title">Output</span>
+            {output && output !== 'Run code to see output here.' && (
+              <span className={`output-badge${output === 'Running...' ? ' output-badge-running' : ''}`}>
+                {output === 'Running...' ? 'Running' : 'Done'}
+              </span>
+            )}
+          </div>
+          <div className="output-header-end">
+            {output && output !== 'Run code to see output here.' && (
+              <button className="btn btn-ghost btn-xs" onClick={() => setOutput('')}>Clear</button>
+            )}
+            <button
+              className="btn btn-ghost btn-xs"
+              onClick={() => setOutputOpen(v => !v)}
+              aria-label={outputOpen ? 'Collapse output' : 'Expand output'}
+              aria-expanded={outputOpen}
+            >
+              {outputOpen ? '▾' : '▴'}
+            </button>
+          </div>
+        </header>
+        {outputOpen && (
+          <pre className="output-content" aria-live="polite">
+            {output || 'Run code to see output here.'}
+          </pre>
+        )}
+      </section>
+
+      {/* ─── AI Panel ─── */}
+      {aiEnabled && (
+        <aside
+          className={`ai-panel-wrapper${aiPanelOpen ? ' ai-panel-wrapper-open' : ''}`}
+          aria-label="AI Assistant"
+          aria-hidden={!aiPanelOpen}
+        >
+          <AIPanel
+            title="AI Assistant"
+            actionLabel={aiActionLabel}
+            content={aiContent}
+            isLoading={aiLoading}
+            error={aiError}
+            onClose={() => setAiPanelOpen(false)}
+            onRetry={handleAIRetry}
+          />
+        </aside>
+      )}
+
+      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar newestOnTop theme="dark" />
+    </div>
   )
 }
 

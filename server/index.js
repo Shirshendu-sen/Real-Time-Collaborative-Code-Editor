@@ -6,6 +6,7 @@ import { WebSocketServer } from "ws";
 import { setupWSConnection } from "@y/websocket-server/utils";
 import { publisher, subscriber } from "./redis.js";
 import { runCode, UnsupportedLanguageError } from "./sandbox/runner.js";
+import aiRoutes from "./ai/routes.js";
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/ai", aiRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });

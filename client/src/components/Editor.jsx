@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { toast } from 'react-toastify'
 import { EditorView, basicSetup } from 'codemirror'
 import { javascript } from '@codemirror/lang-javascript'
+import { oneDark } from '@codemirror/theme-one-dark'
 import { yCollab } from 'y-codemirror.next'
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
+import CodeContextMenu from './ai/CodeContextMenu'
 
 const USER_COLORS = [
   '#f44336', '#e91e63', '#9c27b0', '#673ab7',
@@ -24,14 +26,16 @@ function getColorForUser(name) {
   return USER_COLORS[hashUserName(name) % USER_COLORS.length]
 }
 
-function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChange, onLeaveRoom }) {
+function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChange, onAIAction, currentLanguage, aiEnabled = false }) {
   const editorRef = useRef(null)
+  const viewRef = useRef(null)
   const [activeUsers, setActiveUsers] = useState([])
   const [connectionStatus, setConnectionStatus] = useState('connecting')
   const providerRef = useRef(null)
+  const [contextMenu, setContextMenu] = useState(null)
 
   useEffect(() => {
-     if (!editorRef.current) return
+    if (!editorRef.current) return
 
     const ydoc = new Y.Doc()
     const provider = new WebsocketProvider('ws://localhost:4000', roomName, ydoc)
@@ -39,20 +43,17 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
     const ytext = ydoc.getText('codemirror')
     onCodeChange?.(ytext.toString())
 
-    // --- Connection status tracking ---
     const handleStatus = (event) => {
       setConnectionStatus(event.status)
     }
     provider.on('status', handleStatus)
 
-    // --- Set local awareness (user info) ---
     const userColor = getColorForUser(userName)
     provider.awareness.setLocalStateField('user', {
       name: userName,
       color: userColor,
     })
 
-    // --- Track active users from awareness ---
     const knownClientIds = new Set()
 
     const updateActiveUsers = (changes) => {
@@ -63,14 +64,12 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
           users.push({
             clientId,
             name: state.user.name || 'Anonymous',
-            // Use theme token for fallback user avatar background color
-            color: state.user.color || 'var(--bg-card)',
+            color: state.user.color || 'var(--accent)',
           })
         }
       })
       setActiveUsers(users)
 
-      // Detect joins and leaves from awareness changes
       if (changes) {
         const { added, removed } = changes
         if (added && added.length > 0) {
@@ -90,19 +89,18 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
         }
       }
 
-      // Track all current client IDs for next update
       knownClientIds.clear()
       states.forEach((_state, clientId) => knownClientIds.add(clientId))
     }
 
     provider.awareness.on('change', updateActiveUsers)
-    // Initial population (no changes object, so pass undefined)
     updateActiveUsers()
 
     const view = new EditorView({
       doc: ytext.toString(),
       extensions: [
         basicSetup,
+        oneDark,
         javascript(),
         yCollab(ytext, provider.awareness),
         EditorView.updateListener.of((update) => {
@@ -114,7 +112,10 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
       parent: editorRef.current,
     })
 
+    viewRef.current = view
+
     return () => {
+      viewRef.current = null
       view.destroy()
       provider.off('status', handleStatus)
       provider.awareness.off('change', updateActiveUsers)
@@ -124,11 +125,41 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
     }
   }, [roomName, userName, onCodeChange])
 
-  const handleCopyRoomId = useCallback(() => {
-    navigator.clipboard.writeText(roomName)
-      .then(() => toast.success('Room ID copied to clipboard'))
-      .catch(() => {})
-  }, [roomName])
+  const handleEditorMouseUp = useCallback((e) => {
+    if (!aiEnabled) return
+    const view = viewRef.current
+    if (!view) return
+
+    const { from, to } = view.state.selection.main
+    if (from === to) {
+      setContextMenu(null)
+      return
+    }
+
+    const selectedText = view.state.doc.sliceString(from, to)
+    if (!selectedText.trim()) {
+      setContextMenu(null)
+      return
+    }
+
+    setContextMenu({ x: e.clientX, y: e.clientY, code: selectedText })
+  }, [aiEnabled])
+
+  const handleContextMenuAction = useCallback((actionKey, extra = {}) => {
+    if (!contextMenu) return
+
+    const code = contextMenu.code
+    setContextMenu(null)
+
+    if (onAIAction) {
+      onAIAction({
+        action: actionKey,
+        code,
+        language: currentLanguage || 'JavaScript',
+        ...extra,
+      })
+    }
+  }, [contextMenu, onAIAction, currentLanguage])
 
   const statusLabel = {
     connected: 'Connected',
@@ -136,70 +167,54 @@ function Editor({ roomName = 'default-room', userName = 'Anonymous', onCodeChang
     disconnected: 'Disconnected',
   }
 
-// Use theme tokens for status colors
-const statusColor = {
-  connected: 'var(--success)',
-  connecting: 'var(--warning)',
-  disconnected: 'var(--danger)',
-}
-
   return (
     <div className="editor-layout">
-      {/* ---- Sidebar ---- */}
-      <aside className="editor-sidebar">
-        {/* Connection Status */}
+      {/* ─── Sidebar ─── */}
+      <aside className="sidebar" aria-label="Workspace sidebar">
         <div className="sidebar-section">
-          <h3 className="sidebar-heading">Connection</h3>
-          <div className="connection-status">
-            <span
-              className="status-dot"
-              // Use theme token for fallback status dot color
-              style={{ backgroundColor: statusColor[connectionStatus] || 'var(--text-secondary)' }}
-            />
+          <h3 className="sidebar-heading">Status</h3>
+          <div className="sidebar-status">
+            <span className={`status-dot status-${connectionStatus}`} aria-hidden="true" />
             <span>{statusLabel[connectionStatus] || 'Unknown'}</span>
           </div>
         </div>
 
-        {/* Room Controls */}
-        <div className="sidebar-section">
-          <h3 className="sidebar-heading">Room</h3>
-          <div className="room-id-row">
-            <span className="room-id-label">Room ID:</span>
-            <button className="sidebar-btn copy-btn" onClick={handleCopyRoomId} title="Copy Room ID">
-              📋 Copy
-            </button>
-          </div>
-          <button className="sidebar-btn leave-btn" onClick={onLeaveRoom}>
-            🚪 Leave Room
-          </button>
-        </div>
-
-        {/* Active Users */}
         <div className="sidebar-section">
           <h3 className="sidebar-heading">
-            Active Users
-            <span className="user-count">({activeUsers.length})</span>
+            Users <span className="sidebar-count">{activeUsers.length}</span>
           </h3>
-          <ul className="user-list">
+          <ul className="sidebar-users">
             {activeUsers.map((user) => (
-              <li key={user.clientId} className="user-item">
+              <li key={user.clientId} className="sidebar-user">
                 <span
-                  className="user-avatar"
+                  className="sidebar-user-avatar"
                   style={{ backgroundColor: user.color }}
+                  aria-hidden="true"
                 >
                   {user.name.charAt(0).toUpperCase()}
                 </span>
-                <span className="user-name">{user.name}</span>
+                <span className="sidebar-user-name">{user.name}</span>
               </li>
             ))}
           </ul>
         </div>
       </aside>
 
-      {/* ---- Editor area ---- */}
+      {/* ─── Editor ─── */}
       <div className="editor-area">
-        <div ref={editorRef} className="editor-container" />
+        <div ref={editorRef} className="editor-container" onMouseUp={handleEditorMouseUp} />
       </div>
+
+      {/* ─── Context Menu ─── */}
+      {contextMenu && (
+        <CodeContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          currentLanguage={currentLanguage || 'JavaScript'}
+          onAction={handleContextMenuAction}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   )
 }

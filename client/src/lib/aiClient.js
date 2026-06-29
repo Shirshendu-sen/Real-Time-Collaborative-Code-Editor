@@ -129,3 +129,29 @@ export function extractResponseText(action, data) {
       return JSON.stringify(data, null, 2);
   }
 }
+
+export async function fetchCodeReview({ code, language, output }) {
+  let response;
+  try {
+    response = await fetch(`${API_HOST}/api/ai/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, language, output }),
+    });
+  } catch {
+    throw new Error("Cannot reach the AI server.");
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(`AI server returned an unexpected response (HTTP ${response.status}).`);
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Code review request failed.");
+  }
+
+  return data;
+}

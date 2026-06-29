@@ -4,8 +4,9 @@ import 'react-toastify/dist/ReactToastify.css'
 import Editor from './components/Editor'
 import LanguageSelector from './components/LanguageSelector'
 import AIPanel from './components/ai/AIPanel'
-import { callAIAction, extractResponseText, fetchAIStatus } from './lib/aiClient'
+import { callAIAction, extractResponseText, fetchAIStatus, fetchCodeReview } from './lib/aiClient'
 import Lobby from './components/Lobby'
+import CodeReviewPanel from './components/ai/CodeReviewPanel'
 import './App.css'
 
 const ACTION_LABELS = {
@@ -36,9 +37,29 @@ function App() {
   const [aiActionLabel, setAiActionLabel] = useState('')
   const [lastAIRequest, setLastAIRequest] = useState(null)
 
+  const [reviewData, setReviewData] = useState(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewError, setReviewError] = useState('')
+
   useEffect(() => {
     fetchAIStatus().then(setAiEnabled)
   }, [])
+
+  const triggerCodeReview = useCallback(async (codeToReview, language, runOutput) => {
+    if (!aiEnabled) return
+    setReviewLoading(true)
+    setReviewError('')
+    setReviewData(null)
+
+    try {
+      const data = await fetchCodeReview({ code: codeToReview, language, output: runOutput })
+      setReviewData(data)
+    } catch (err) {
+      setReviewError(err.message || 'Code review unavailable.')
+    } finally {
+      setReviewLoading(false)
+    }
+  }, [aiEnabled])
 
   const runCode = async () => {
     setIsRunning(true)
@@ -49,7 +70,7 @@ function App() {
       const response = await fetch('http://localhost:4000/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, language: selectedLanguage }),
       })
 
       const result = await response.json()
@@ -60,6 +81,8 @@ function App() {
 
       const combinedOutput = `${result.stdout || ''}${result.stderr || ''}`
       setOutput(combinedOutput || `Process exited with code ${result.exitCode}`)
+
+      triggerCodeReview(code, selectedLanguage, combinedOutput)
     } catch (error) {
       setOutput(error.message)
     } finally {
@@ -104,6 +127,12 @@ function App() {
       .then(() => toast.success('Room ID copied'))
       .catch(() => {})
   }, [session])
+
+  const handleReviewRetry = useCallback(() => {
+    if (code.trim()) {
+      triggerCodeReview(code, selectedLanguage, output)
+    }
+  }, [code, selectedLanguage, output, triggerCodeReview])
 
   if (!session) {
     return (
@@ -212,6 +241,26 @@ function App() {
           </pre>
         )}
       </section>
+
+      {/* ─── Code Review Panel (auto-triggered after Run) ─── */}
+      {aiEnabled && (reviewLoading || reviewError || reviewData) && (
+        <section className="code-review-pane" aria-label="Code review">
+          <header className="code-review-header">
+            <span className="code-review-title">Code Review</span>
+            {reviewData && !reviewLoading && (
+              <button className="btn btn-ghost btn-xs" onClick={() => setReviewData(null)}>
+                Dismiss
+              </button>
+            )}
+          </header>
+          <CodeReviewPanel
+            review={reviewData}
+            isLoading={reviewLoading}
+            error={reviewError}
+            onRetry={handleReviewRetry}
+          />
+        </section>
+      )}
 
       {/* ─── AI Panel ─── */}
       {aiEnabled && (
